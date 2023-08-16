@@ -13,3 +13,4 @@ BasicTypingProp.v
 # Denotation.v
 # Instantiation.v
 # Typing.v
+QTA.v
