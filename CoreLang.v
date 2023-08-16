@@ -30,29 +30,15 @@ Coercion cnat : nat >-> constant.
 (* rightbkarrow *)
 Notation " t1 '⤍' t2" := (TArrow t1 t2) (at level 18, right associativity).
 
-(** * effectful operators *)
-Inductive effop : Type :=
-| op_plus_one
-| op_minus_one
-| op_eq_zero
-| op_rannat
-| op_ranbool
-| op_read
-| op_write.
-
-Global Hint Constructors effop: core.
-
 (** * core language in locally nameless style, defined mutual recursively *)
 Inductive value : Type :=
 | vconst (c: constant)
 | vfvar (atom: atom)
 | vbvar (bn: nat)
 | vlam (T: ty) (e: tm)
-| vfix (Tf: ty) (e: tm)
 with tm : Type :=
 | treturn (v: value)
 | tlete (e1: tm) (e2: tm)
-| tleteffop (op: effop) (v1: value) (e: tm)
 | tletapp (v1: value) (v2: value) (e: tm)
 | tmatchb (v: value) (e1: tm) (e2: tm).
 
@@ -71,7 +57,6 @@ Fixpoint open_value (k : nat) (s : value) (v : value): value :=
   | vfvar _ => v
   | vbvar n => if decide (k = n) then s else v
   | vlam T e => vlam T (open_tm (S k) s e)
-  | vfix Tf e => vfix Tf (open_tm (S k) s e)
   end
 with open_tm (k : nat) (s : value) (e : tm): tm :=
        match e with
@@ -79,8 +64,6 @@ with open_tm (k : nat) (s : value) (e : tm): tm :=
        | tlete e1 e2 => tlete (open_tm k s e1) (open_tm (S k) s e2)
        | tletapp v1 v2 e =>
            tletapp (open_value k s v1) (open_value k s v2) (open_tm (S k) s e)
-       | tleteffop op v1 e =>
-           tleteffop op (open_value k s v1) (open_tm (S k) s e)
        | tmatchb v e1 e2 => tmatchb (open_value k s v) (open_tm k s e1) (open_tm k s e2)
        end.
 
@@ -97,7 +80,6 @@ Fixpoint close_value (x : atom) (s : nat) (v : value): value :=
   | vfvar y => if decide (x = y) then vbvar s else v
   | vbvar _ => v
   | vlam T e => vlam T (close_tm x (S s) e)
-  | vfix Tf e => vfix Tf (close_tm x (S s) e)
   end
 with close_tm (x : atom) (s : nat) (e : tm): tm :=
        match e with
@@ -105,8 +87,6 @@ with close_tm (x : atom) (s : nat) (e : tm): tm :=
        | tlete e1 e2 => tlete (close_tm x s e1) (close_tm x (S s) e2)
        | tletapp v1 v2 e =>
            tletapp (close_value x s v1) (close_value x s v2) (close_tm x (S s) e)
-       | tleteffop op v1 e =>
-           tleteffop op (close_value x s v1) (close_tm x (S s) e)
        | tmatchb v e1 e2 =>
            tmatchb (close_value x s v) (close_tm x s e1) (close_tm x s e2)
        end.
@@ -122,14 +102,10 @@ Inductive lc: tm -> Prop :=
 | lc_const: forall (c: constant), lc c
 | lc_vfvar: forall (a: atom), lc (vfvar a)
 | lc_vlam: forall T e (L: aset), (forall (x: atom), x ∉ L -> lc (e ^t^ x)) -> lc (vlam T e)
-| lc_vfix: forall Tf e (L: aset),
-    (forall (f:atom), f ∉ L -> lc ({0 ~t> f} e)) -> lc (vfix Tf e)
 | lc_tlete: forall (e1 e2: tm) (L: aset),
     lc e1 -> (forall (x: atom), x ∉ L -> lc (e2 ^t^ x)) -> lc (tlete e1 e2)
 | lc_tletapp: forall (v1 v2: value) e (L: aset),
     lc v1 -> lc v2 -> (forall (x: atom), x ∉ L -> lc (e ^t^ x)) -> lc (tletapp v1 v2 e)
-| lc_tleteffop: forall op (v1: value) e (L: aset),
-    lc v1 -> (forall (x: atom), x ∉ L -> lc (e ^t^ x)) -> lc (tleteffop op v1 e)
 | lc_tmatchb: forall (v: value) e1 e2, lc v -> lc e1 -> lc e2 -> lc (tmatchb v e1 e2).
 
 Global Hint Constructors lc: core.
@@ -144,14 +120,12 @@ Fixpoint fv_value (v : value): aset :=
   | vfvar y => {[ y ]}
   | vbvar _ => ∅
   | vlam T e => fv_tm e
-  | vfix Tf e => fv_tm e
   end
 with fv_tm (e : tm): aset :=
        match e with
        | treturn v => fv_value v
        | tlete e1 e2 => (fv_tm e1) ∪ (fv_tm e2)
        | tletapp v1 v2 e => (fv_value v1) ∪ (fv_value v2) ∪ (fv_tm e)
-       | tleteffop op v1 e => (fv_value v1) ∪ (fv_tm e)
        | tmatchb v e1 e2 => (fv_value v) ∪ (fv_tm e1) ∪ (fv_tm e2)
        end.
 
@@ -167,14 +141,12 @@ Fixpoint value_subst (x : atom) (s : value) (v : value): value :=
   | vfvar y => if decide (x = y) then s else v
   | vbvar _ => v
   | vlam T e => vlam T (tm_subst x s e)
-  | vfix Tf e => vfix Tf (tm_subst x s e)
   end
 with tm_subst (x : atom) (s : value) (e : tm): tm :=
        match e with
        | treturn v => treturn (value_subst x s v)
        | tlete e1 e2 => tlete (tm_subst x s e1) (tm_subst x s e2)
        | tletapp v1 v2 e => tletapp (value_subst x s v1) (value_subst x s v2) (tm_subst x s e)
-       | tleteffop op v1 e => tleteffop op (value_subst x s v1) (tm_subst x s e)
        | tmatchb v e1 e2 => tmatchb (value_subst x s v) (tm_subst x s e1) (tm_subst x s e2)
        end.
 

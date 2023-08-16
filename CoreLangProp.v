@@ -306,7 +306,6 @@ Proof with auto.
   - repeat var_dec_solver.
   - repeat var_dec_solver.
   - auto_eq_post; rewrite H0; auto; set_solver.
-  - auto_eq_post; rewrite H0; auto; set_solver.
   - auto_eq_post; rewrite H1; auto; set_solver.
 Qed.
 
@@ -325,7 +324,6 @@ Proof with auto.
         ); simpl; intros; auto; try (repeat rewrite_by_set_solver; auto); try (rewrite H; auto).
   - repeat var_dec_solver.
   - repeat var_dec_solver.
-  - auto_eq_post; rewrite H0; auto; set_solver.
   - auto_eq_post; rewrite H0; auto; set_solver.
   - auto_eq_post; rewrite H1; auto; set_solver.
 Qed.
@@ -524,18 +522,6 @@ Proof.
   solve_let_lc_body H.
 Qed.
 
-Lemma leteffop_lc_body: forall op (v1: value) e, lc (tleteffop op v1 e) <-> lc v1 /\ body e.
-Proof.
-  solve_let_lc_body H.
-Qed.
-
-Lemma lc_fix_iff_body: forall T e, lc (vfix T e) <-> body e.
-Proof.
-  split; unfold body; intros.
-  - inversion H; subst. exists L. auto.
-  - destruct H as (L & HL). econstructor. apply HL.
-Qed.
-
 Lemma lc_implies_body_tm: forall (e: tm), lc e -> body e.
 Proof. intros. exists ∅; intros; rewrite open_rec_lc_tm; auto.
 Qed.
@@ -549,14 +535,11 @@ Ltac lc_solver :=
     | [ |- lc (treturn (vfvar _))] => constructor
     | [ |- lc (tmatchb _ _ _)] => apply lc_tmatchb; (repeat split; auto)
     | [ |- lc (tletapp _ _ _)] => rewrite letapp_lc_body; (repeat split; auto)
-    | [ |- lc (tleteffop _ _ _)] => rewrite leteffop_lc_body; (repeat split; auto)
     | [ |- lc (tlete _ _)] => rewrite lete_lc_body; split; auto
-    | [ |- lc (treturn (vfix _ _))] => rewrite lc_fix_iff_body; auto
     | [ |- lc (treturn (vlam _ _))] => rewrite lc_abs_iff_body; auto
     | [H: lc (tlete _ ?e) |- body ?e ] => rewrite lete_lc_body in H; repeat destruct_hyp_conj; auto
     | [H: lc (tletapp _ _ ?e) |- body ?e ] => rewrite letapp_lc_body in H; repeat destruct_hyp_conj; auto
     | [H: lc (treturn (vlam _ ?e)) |- body ?e ] => rewrite lc_abs_iff_body in H; repeat destruct_hyp_conj; auto
-    | [H: lc (treturn (vfix _ ?e)) |- body ?e ] => rewrite lc_fix_iff_body in H; repeat destruct_hyp_conj; auto
     | [H: lc (tletapp ?e _ _) |- lc (treturn ?e) ] => rewrite letapp_lc_body in H; repeat destruct_hyp_conj; auto
     | [H: lc (tletapp _ ?e _) |- lc (treturn ?e) ] => rewrite letapp_lc_body in H; repeat destruct_hyp_conj; auto
     | [H: lc ?e |- body ?e] => apply lc_implies_body_tm; auto
@@ -577,13 +560,9 @@ Proof.
   (* - repeat var_dec_solver. invclear H0; auto. *)
   - rewrite H; auto. invclear H0. rewrite H2; auto.
   - rewrite H; auto. invclear H0. rewrite H2; auto.
-  - rewrite H; auto. invclear H0. rewrite H2; auto.
   - rewrite H; auto. rewrite H0; auto.
     + invclear H1; rewrite H4; auto.
     + invclear H1; rewrite H3; auto.
-  - rewrite H; auto. rewrite H0; auto.
-    + invclear H1; rewrite H4; auto.
-    + invclear H1; repeat rewrite H3; auto.
   - rewrite H; auto. rewrite H0; auto. rewrite H1; auto.
     + invclear H2; rewrite H6; auto.
     + invclear H2; repeat rewrite H5; auto.
@@ -607,13 +586,9 @@ Proof.
   (* - repeat var_dec_solver. invclear H0; auto. *)
   - rewrite H; auto. invclear H0. rewrite H2; auto.
   - rewrite H; auto. invclear H0. rewrite H2; auto.
-  - rewrite H; auto. invclear H0. rewrite H2; auto.
   - rewrite H; auto. rewrite H0; auto.
     + invclear H1; rewrite H4; auto.
     + invclear H1; rewrite H3; auto.
-  - rewrite H; auto. rewrite H0; auto.
-    + invclear H1; rewrite H4; auto.
-    + invclear H1; repeat rewrite H3; auto.
   - rewrite H; auto. rewrite H0; auto. rewrite H1; auto.
     + invclear H2; rewrite H6; auto.
     + invclear H2; repeat rewrite H5; auto.
@@ -715,8 +690,6 @@ Proof.
   - repeat var_dec_solver.
   - rewrite H; auto.
   - rewrite H; auto.
-  - rewrite H; auto.
-  - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
   - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
   - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
     rewrite H1; auto; try fast_set_solver.
@@ -735,8 +708,6 @@ Proof.
   - repeat var_dec_solver.
   - rewrite H; auto.
   - rewrite H; auto.
-  - rewrite H; auto.
-  - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
   - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
   - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
     rewrite H1; auto; try fast_set_solver.
@@ -843,8 +814,6 @@ Proof.
   - repeat var_dec_solver.
   - rewrite H; auto.
   - rewrite H; auto.
-  - rewrite H; auto.
-  - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
   - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
   - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
     rewrite H1; auto; try fast_set_solver.
@@ -864,8 +833,6 @@ Proof.
   - repeat var_dec_solver.
   - rewrite H; auto.
   - rewrite H; auto.
-  - rewrite H; auto.
-  - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
   - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
   - rewrite H; auto; try fast_set_solver. rewrite H0; auto; try fast_set_solver.
     rewrite H1; auto; try fast_set_solver.
@@ -1024,7 +991,7 @@ with open_swap_value: forall (t: value) i j (u v: value),
     {i ~v> v} ({j ~v> u} t) = {j ~v> u} ({i ~v> v} t).
 Proof.
   all: intros; destruct t; simpl; try reflexivity.
-  6 : {
+  5 : {
     repeat (case_decide; simpl; subst); try easy;
     rewrite !open_rec_lc_value; eauto.
   }

@@ -12,19 +12,6 @@ Definition ty_of_const (c: constant): base_ty :=
   | cbool _ => TBool
   end.
 
-Definition ret_ty_of_op (op: effop): base_ty :=
-  match op with
-  | op_plus_one => TNat
-  | op_minus_one => TNat
-  | op_eq_zero => TBool
-  | op_rannat => TNat
-  | op_ranbool => TBool
-  | op_read => TNat
-  | op_write => TBool
-  end.
-
-Definition ty_of_op (op: effop): ty := TNat ⤍ (ret_ty_of_op op).
-
 Definition context := amap ty.
 #[global]
 Instance context_stale : Stale context := dom.
@@ -40,11 +27,6 @@ Inductive tm_has_type : context -> tm -> ty -> Prop :=
     Γ ⊢t e1 ⋮t T1 ->
     (forall (x: atom), x ∉ L -> (<[ x := T1]> Γ) ⊢t e2 ^t^ x ⋮t T2) ->
     Γ ⊢t (tlete e1 e2) ⋮t T2
-| BtEffOp : forall Γ (op: effop) v1 e (T1 Tx: base_ty) T (L: aset),
-    Γ ⊢t v1 ⋮v T1 ->
-    (ty_of_op op) = T1 ⤍ Tx ->
-    (forall (x: atom), x ∉ L -> (<[x := TBase Tx]> Γ) ⊢t e ^t^ x ⋮t T) ->
-    Γ ⊢t tleteffop op v1 e ⋮t T
 | BtApp : forall Γ v1 v2 e T1 Tx T (L: aset),
     Γ ⊢t v1 ⋮v T1 ⤍ Tx ->
     Γ ⊢t v2 ⋮v T1 ->
@@ -62,9 +44,6 @@ with value_has_type : context -> value -> ty -> Prop :=
 | BtFun : forall Γ Tx T e (L: aset),
     (forall (x: atom), x ∉ L -> (<[x := Tx]> Γ) ⊢t e ^t^ x ⋮t T) ->
     Γ ⊢t vlam Tx e ⋮v Tx ⤍ T
-| BtFix : forall Γ (Tx: base_ty) T e (L: aset),
-    (forall (x: atom), x ∉ L -> (<[x := TBase Tx]>Γ) ⊢t (vlam (Tx ⤍ T) e) ^v^ x ⋮v ((Tx ⤍ T) ⤍ T)) ->
-    Γ ⊢t vfix (Tx ⤍ T) (vlam (Tx ⤍ T) e) ⋮v Tx ⤍ T
 where "Γ '⊢t' t '⋮t' T" := (tm_has_type Γ t T) and "Γ '⊢t' t '⋮v' T" := (value_has_type Γ t T).
 
 Scheme value_has_type_mutual_rec := Induction for value_has_type Sort Prop
@@ -138,10 +117,8 @@ Proof.
 Qed.
 
 Lemma empty_basic_typing_arrow_value_lam_exists:
-  forall (v: value) T1 T2, ∅ ⊢t v ⋮v T1 ⤍ T2 ->
-                      (exists e, v = vlam T1 e) \/ (exists e, v = vfix (T1 ⤍ T2) (vlam (T1 ⤍ T2) e)).
+  forall (v: value) T1 T2, ∅ ⊢t v ⋮v T1 ⤍ T2 -> (exists e, v = vlam T1 e).
 Proof.
   inversion 1; subst. simplify_map_eq.
-  - left. eauto.
-  - right. eexists. f_equal.
+  eexists. f_equal.
 Qed.

@@ -8,7 +8,6 @@ Import CoreLang.
 Import Tactics.
 Import NamelessTactics.
 Import BasicTyping.
-Import Trace.
 Import OperationalSemantics.
 
 Lemma basic_typing_weaken_tm: forall Γ Γ' (v: tm) T,
@@ -109,9 +108,9 @@ Proof.
 Qed.
 
 (** perservation *)
-Lemma preservation: forall α β Γ T (e e': tm),α ⊧ e ↪{ β } e' -> Γ ⊢t e ⋮t T -> Γ ⊢t e' ⋮t T.
+Lemma preservation: forall Γ T (e e': tm),e ↪ e' -> Γ ⊢t e ⋮t T -> Γ ⊢t e' ⋮t T.
 Admitted.
 
 (** multi preservation *)
-Lemma multi_preservation: forall α β Γ T (e e': tm),α ⊧ e ↪*{ β } e' -> Γ ⊢t e ⋮t T -> Γ ⊢t e' ⋮t T.
+Lemma multi_preservation: forall Γ T (e e': tm),e ↪* e' -> Γ ⊢t e ⋮t T -> Γ ⊢t e' ⋮t T.
 Admitted.
